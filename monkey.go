@@ -61,7 +61,7 @@ func RegisterReplacement[T any](p *Patcher, original, replacement T) {
 	}
 
 	originalFunc := runtime.FuncForPC(uintptr(originalValue.UnsafePointer()))
-	replacementFunc := runtime.FuncForPC(uintptr(originalValue.UnsafePointer()))
+	replacementFunc := runtime.FuncForPC(uintptr(replacementValue.UnsafePointer()))
 
 	if originalFunc == nil || replacementFunc == nil {
 		p.stickyErr = ErrFunctionNotFound
