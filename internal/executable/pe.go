@@ -99,16 +99,12 @@ func (pe *PE) Offset(p *gosym.Func) int64 {
 }
 
 func startEndSymbols(f *pe.File, startSymbol, endSymbol string) (ssym, esym *pe.Symbol, err error) {
-	for _, s := range f.Symbols {
+	for i, s := range f.Symbols {
 		switch s.Name {
 		case startSymbol:
-			if ssym == nil {
-				ssym = s
-			}
+			ssym = f.Symbols[i]
 		case endSymbol:
-			if esym == nil {
-				esym = s
-			}
+			esym = f.Symbols[i]
 		default:
 			continue
 		}
