@@ -102,9 +102,13 @@ func startEndSymbols(f *pe.File, startSymbol, endSymbol string) (ssym, esym *pe.
 	for _, s := range f.Symbols {
 		switch s.Name {
 		case startSymbol:
-			ssym = s
+			if ssym == nil {
+				ssym = s
+			}
 		case endSymbol:
-			esym = s
+			if esym == nil {
+				esym = s
+			}
 		default:
 			continue
 		}
