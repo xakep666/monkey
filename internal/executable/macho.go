@@ -29,7 +29,7 @@ func NewMachO(rw ReadWriterAt) (*MachO, error) {
 
 	lcSegment := machoFile.Segment("LC_SEGMENT")
 	if lcSegment == nil {
-		return nil, ErrNotGo
+		return nil, ErrNotGo("LC_SEGMENT not found")
 	}
 
 	var text, symTab, pcLnTab *macho.Section
@@ -45,13 +45,13 @@ func NewMachO(rw ReadWriterAt) (*MachO, error) {
 	}
 
 	if text == nil || symTab == nil || pcLnTab == nil {
-		return nil, ErrNotGo
+		return nil, ErrNotGo("go-specific sections not found")
 	}
 
 	goarch := getGOARCH(rw)
 	if goarch == "" {
 		if goarch = machoGOARCH(machoFile); goarch == "" {
-			return nil, ErrNotGo
+			return nil, ErrNotGo("can't detect goarch")
 		}
 	}
 

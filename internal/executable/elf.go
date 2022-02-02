@@ -37,7 +37,7 @@ func NewELF(rw ReadWriterAt) (*ELF, error) {
 	}
 
 	if loadProg == nil {
-		return nil, ErrNotGo
+		return nil, ErrNotGo("LOAD program not found")
 	}
 
 	var text, symTab, pcLnTab *elf.Section
@@ -53,13 +53,13 @@ func NewELF(rw ReadWriterAt) (*ELF, error) {
 	}
 
 	if text == nil || symTab == nil || pcLnTab == nil {
-		return nil, ErrNotGo
+		return nil, ErrNotGo("go-specific sections not found")
 	}
 
 	goarch := getGOARCH(rw)
 	if goarch == "" {
 		if goarch = elfGOARCH(elfFile); goarch == "" {
-			return nil, ErrNotGo
+			return nil, ErrNotGo("can't detect goarch")
 		}
 	}
 

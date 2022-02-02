@@ -34,12 +34,12 @@ func NewPE(rw ReadWriterAt) (*PE, error) {
 	case *pe.OptionalHeader64:
 		imageBase = oh.ImageBase
 	default:
-		return nil, fmt.Errorf("pe file format not recognized: %w", ErrNotGo)
+		return nil, ErrNotGo("pe format not recognized")
 	}
 
 	text := peFile.Section(".text")
 	if text == nil {
-		return nil, ErrNotGo
+		return nil, ErrNotGo(".text section not found")
 	}
 
 	// go stores symtab and pclntab inside other section (currently .text) and their boundaries can be found in symbol values
@@ -57,7 +57,7 @@ func NewPE(rw ReadWriterAt) (*PE, error) {
 	goarch := getGOARCH(rw)
 	if goarch == "" {
 		if goarch = peGOARCH(peFile); goarch == "" {
-			return nil, ErrNotGo
+			return nil, ErrNotGo("can't detect goarch")
 		}
 	}
 
@@ -114,12 +114,12 @@ func startEndSymbols(f *pe.File, startSymbol, endSymbol string) (ssym, esym *pe.
 		}
 
 		if s.SectionNumber <= 0 || len(f.Sections) < int(s.SectionNumber) {
-			return nil, nil, fmt.Errorf("bad secion number %d: %w", s.SectionNumber, ErrNotGo)
+			return nil, nil, ErrNotGo(fmt.Sprintf("bad secion number %d", s.SectionNumber))
 		}
 	}
 
 	if esym == nil || ssym == nil || ssym.SectionNumber != esym.SectionNumber {
-		return nil, nil, fmt.Errorf("no start/end symbol or they're in different sections: %w", ErrNotGo)
+		return nil, nil, ErrNotGo("no start/end symbol or they're in different sections")
 	}
 
 	return ssym, esym, nil
