@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	machoText      = "__text"
-	machoGoSymTab  = "__gosymtab"
-	machoGoPCLnTab = "__gopclntab"
+	machoText        = "__text"
+	machoTextSegment = "__TEXT" // loads __text
+	machoGoSymTab    = "__gosymtab"
+	machoGoPCLnTab   = "__gopclntab"
 )
 
 type MachO struct {
@@ -27,9 +28,9 @@ func NewMachO(rw ReadWriterAt) (*MachO, error) {
 		return nil, fmt.Errorf("macho open: %w", err)
 	}
 
-	lcSegment := machoFile.Segment("LC_SEGMENT")
+	lcSegment := machoFile.Segment(machoTextSegment)
 	if lcSegment == nil {
-		return nil, ErrNotGo("LC_SEGMENT not found")
+		return nil, ErrNotGo("loader segment for __text not found")
 	}
 
 	var text, symTab, pcLnTab *macho.Section
