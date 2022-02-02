@@ -1,0 +1,109 @@
+name: Go Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        run: | # TODO: migrate to actions/setup-go after 1.18 release
+          curl -sSL https://go.dev/dl/go1.18beta2.linux-amd64.tar.gz | tar -C $HOME -xzvf -
+          echo "GOROOT=$HOME/go" >> $GITHUB_ENV
+          echo "$HOME/go/bin:$PATH" >> $GITHUB_PATH
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Download dependencies
+        run: go mod download -x
+
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
+          flags: unittests
+          verbose: true
+  e2e_tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - runs: ubuntu-latest
+            goos: linux
+        cpu:
+          - runs: amd64
+            goarch: amd64
+          - runs: armv7
+            goarch: arm
+          - runs: aarch64
+            goarch: arm64
+        include:
+          # no ways to run windows and macos on non-x86 cpu
+          - os:
+              runs: macos-latest
+              goos: darwin
+            cpu:
+              runs: amd64
+              goarch: amd64
+          - os:
+              runs: windows-latest
+              goos: windows
+            cpu:
+              runs: amd64
+              goarch: amd64
+            install_cmd: |
+              Invoke-WebRequest -uri 'https://go.dev/dl/go1.18beta2.windows-amd64.zip' -OutFile 'go.zip'
+              Expand-Archive go.zip -DestinationPath "$env:APPDATA"
+              echo "GOROOT=$env:APPDATA\go" >> "$env:GITHUB_ENV"
+              echo "$env:APPDATA\go\bin" >> "$env:GITHUB_PATH"
+    runs-on: ${{ matrix.os.runs }}
+    steps:
+      - name: Install Go
+        if: ${{ matrix.install_cmd == '' }}
+        run: |
+          curl -sSL https://go.dev/dl/go1.18beta2.${{matrix.os.goos}}-amd64.tar.gz | tar -C $HOME -xzvf -
+          echo "GOROOT=$HOME/go" >> $GITHUB_ENV
+          echo "$HOME/go/bin:$PATH" >> $GITHUB_PATH
+
+      - name: Install Go
+        if: ${{ matrix.install_cmd != '' }}
+        run: ${{ matrix.install_cmd }}
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Download dependencies
+        run: go mod download -x
+
+      - name: Run tests # direct run on host architecture
+        if: ${{ matrix.cpu.runs == 'amd64' }}
+        run: go test -v -tags integration -run '.*_Integration$' ./...
+
+      - name: Build test binary # cross-compile for emulators
+        if: ${{ matrix.os.goos == 'linux' && matrix.cpu.runs != 'amd64' }}
+        run: |
+          mkdir -p test_bin
+          for pkg in $(go list ./...); do
+            escaped=$(echo "$pkg" | sed 's/\//_/g')
+            GOARCH="${{ matrix.cpu.goarch }}" go test -c -o "test_bin/${escaped}.test" -tags integration "$pkg"
+          done
+
+      - name: Run test binary
+        if: ${{ matrix.os.goos == 'linux' && matrix.cpu.runs != 'amd64' }}
+        uses: uraimo/run-on-arch-action@v2.1.1
+        with:
+          arch: ${{ matrix.cpu.runs }}
+          run: |
+            for test in ./test_bin/*; do
+              $test -test.v -test.run '.*_Integration$'
+            done
