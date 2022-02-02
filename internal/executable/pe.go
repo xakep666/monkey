@@ -118,8 +118,17 @@ func startEndSymbols(f *pe.File, startSymbol, endSymbol string) (ssym, esym *pe.
 		}
 	}
 
-	if esym == nil || ssym == nil || ssym.SectionNumber != esym.SectionNumber {
-		return nil, nil, ErrNotGo("no start/end symbol or they're in different sections")
+	if ssym == nil {
+		return nil, nil, ErrNotGo(fmt.Sprintf("start symbol %s not found", startSymbol))
+	}
+
+	if esym == nil {
+		return nil, nil, ErrNotGo(fmt.Sprintf("end symbol %s not found", endSymbol))
+	}
+
+	if ssym.SectionNumber != esym.SectionNumber {
+		return nil, nil, ErrNotGo(fmt.Sprintf("start/end symbol in different sections: %d/%d",
+			ssym.SectionNumber, esym.SectionNumber))
 	}
 
 	return ssym, esym, nil
