@@ -57,6 +57,7 @@ jobs:
           - os:
               runs: windows-latest
               goos: windows
+              test_args: "-o $env:TEMP/test.exe" # doesn't work if we run patcher inside test, can't find necessary symbols
             cpu:
               runs: amd64
               goarch: amd64
@@ -87,7 +88,7 @@ jobs:
 
       - name: Run tests # direct run on host architecture
         if: ${{ matrix.cpu.runs == 'amd64' }}
-        run: go test -v -tags integration -run '.*_Integration$' ./...
+        run: go test ${{ matrix.os.test_args }} -v -tags integration -run '.*_Integration$' .
 
       - name: Build test binary # cross-compile for emulators
         if: ${{ matrix.os.goos == 'linux' && matrix.cpu.runs != 'amd64' }}
