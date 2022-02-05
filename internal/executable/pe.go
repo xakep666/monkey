@@ -34,12 +34,12 @@ func NewPE(rw ReadWriterAt) (*PE, error) {
 	case *pe.OptionalHeader64:
 		imageBase = oh.ImageBase
 	default:
-		return nil, fmt.Errorf("pe file format not recognized: %w", ErrNotGo)
+		return nil, ErrNotGo("pe format not recognized")
 	}
 
 	text := peFile.Section(".text")
 	if text == nil {
-		return nil, ErrNotGo
+		return nil, ErrNotGo(".text section not found")
 	}
 
 	// go stores symtab and pclntab inside other section (currently .text) and their boundaries can be found in symbol values
@@ -57,7 +57,7 @@ func NewPE(rw ReadWriterAt) (*PE, error) {
 	goarch := getGOARCH(rw)
 	if goarch == "" {
 		if goarch = peGOARCH(peFile); goarch == "" {
-			return nil, ErrNotGo
+			return nil, ErrNotGo("can't detect goarch")
 		}
 	}
 
@@ -99,23 +99,32 @@ func (pe *PE) Offset(p *gosym.Func) int64 {
 }
 
 func startEndSymbols(f *pe.File, startSymbol, endSymbol string) (ssym, esym *pe.Symbol, err error) {
-	for _, s := range f.Symbols {
+	for i, s := range f.Symbols {
 		switch s.Name {
 		case startSymbol:
-			ssym = s
+			ssym = f.Symbols[i]
 		case endSymbol:
-			esym = s
+			esym = f.Symbols[i]
 		default:
 			continue
 		}
 
 		if s.SectionNumber <= 0 || len(f.Sections) < int(s.SectionNumber) {
-			return nil, nil, fmt.Errorf("bad secion number %d: %w", s.SectionNumber, ErrNotGo)
+			return nil, nil, ErrNotGo(fmt.Sprintf("bad secion number %d", s.SectionNumber))
 		}
 	}
 
-	if esym == nil || ssym == nil || ssym.SectionNumber != esym.SectionNumber {
-		return nil, nil, fmt.Errorf("no start/end symbol or they're in different sections: %w", ErrNotGo)
+	if ssym == nil {
+		return nil, nil, ErrNotGo(fmt.Sprintf("start symbol %s not found", startSymbol))
+	}
+
+	if esym == nil {
+		return nil, nil, ErrNotGo(fmt.Sprintf("end symbol %s not found", endSymbol))
+	}
+
+	if ssym.SectionNumber != esym.SectionNumber {
+		return nil, nil, ErrNotGo(fmt.Sprintf("start/end symbol in different sections: %d/%d",
+			ssym.SectionNumber, esym.SectionNumber))
 	}
 
 	return ssym, esym, nil

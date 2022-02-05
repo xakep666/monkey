@@ -108,7 +108,7 @@ func (p *Patcher) makeReplacements(rw executable.ReadWriterAt) error {
 		return err
 	}
 
-	exe, err := executable.BySignature(rw)
+	exe, err := executable.Recognize(rw)
 	if err != nil {
 		return err
 	}
