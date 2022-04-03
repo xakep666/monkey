@@ -130,13 +130,13 @@ func (p *Patcher) makeReplacements(rw executable.ReadWriterAt) error {
 // PatchAndExec makes patches according to registered replacements and re-runs executable.
 // Algorithm:
 // 0) Check if we are not running patched executable, otherwise go to 1.
-//	This made by checking presence (or exact value if specified) of special environment variable.
+// This made by checking presence (or exact value if specified) of special environment variable.
 // 0.1) Remove itself if such option specified.
 // 1) Copy current executable to temporary file
 // 2) For each replacement: replace beginning of original function with "trampoline" to replacement function.
 // 3) Run patched executable with special environment variable to avoid recursions (this is terminal condition).
-// 	'execve' system call used on *nix systems, 'exec.Command' with stdin/out/err attached and 'os.Exit' after termination on others.
-//  So on successful run all code after this function in original executable will become unreachable.
+// 'execve' system call used on *nix systems, 'exec.Command' with stdin/out/err attached and 'os.Exit' after termination on others.
+// So on successful run all code after this function in original executable will become unreachable.
 func (p *Patcher) PatchAndExec(opts ...PatchAndExecOption) error {
 	if p.stickyErr != nil {
 		return p.stickyErr

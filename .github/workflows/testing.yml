@@ -10,11 +10,10 @@ jobs:
   unit_tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Go
-        run: | # TODO: migrate to actions/setup-go after 1.18 release
-          curl -sSL https://go.dev/dl/go1.18beta2.linux-amd64.tar.gz | tar -C $HOME -xzvf -
-          echo "GOROOT=$HOME/go" >> $GITHUB_ENV
-          echo "$HOME/go/bin:$PATH" >> $GITHUB_PATH
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
 
       - uses: actions/checkout@v2
         with:
@@ -61,23 +60,12 @@ jobs:
             cpu:
               runs: amd64
               goarch: amd64
-            install_cmd: |
-              Invoke-WebRequest -uri 'https://go.dev/dl/go1.18beta2.windows-amd64.zip' -OutFile 'go.zip'
-              Expand-Archive go.zip -DestinationPath "$env:APPDATA"
-              echo "GOROOT=$env:APPDATA\go" >> "$env:GITHUB_ENV"
-              echo "$env:APPDATA\go\bin" >> "$env:GITHUB_PATH"
     runs-on: ${{ matrix.os.runs }}
     steps:
-      - name: Install Go
-        if: ${{ matrix.install_cmd == '' }}
-        run: |
-          curl -sSL https://go.dev/dl/go1.18beta2.${{matrix.os.goos}}-amd64.tar.gz | tar -C $HOME -xzvf -
-          echo "GOROOT=$HOME/go" >> $GITHUB_ENV
-          echo "$HOME/go/bin:$PATH" >> $GITHUB_PATH
-
-      - name: Install Go
-        if: ${{ matrix.install_cmd != '' }}
-        run: ${{ matrix.install_cmd }}
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
 
       - uses: actions/checkout@v2
         with:
